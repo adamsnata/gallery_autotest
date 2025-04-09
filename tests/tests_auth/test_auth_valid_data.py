@@ -3,7 +3,7 @@ import allure
 from allure_commons.types import Severity
 from selene import browser
 
-from Litres_tests.auth_litres import AuthorisationLitres
+from projekt_tests.auth_litres import AuthorisationLitres
 
 
 authorisation_litres = AuthorisationLitres()

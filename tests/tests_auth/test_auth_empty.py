@@ -1,6 +1,6 @@
 import allure
 from allure_commons.types import Severity
-from Litres_tests.auth_litres import AuthorisationLitres
+from projekt_tests.auth_litres import AuthorisationLitres
 
 @allure.tag("web")
 @allure.severity(Severity.MINOR)

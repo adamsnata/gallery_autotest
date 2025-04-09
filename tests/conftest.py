@@ -1,87 +1,76 @@
 import pytest
-import os
-import logging
-import time
-import requests
-from dotenv import load_dotenv
-from selene.support.shared import browser
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from utils import attach
 
-logger = logging.getLogger((__name__))
-DEFAULT_BROWSER_VERSION = "128.0"
-DEFAULT_WINDOW_WIDTH = int(os.getenv("BROWSER_WINDOW_WIDTH", 1700))
-DEFAULT_WINDOW_HEIGHT = int(os.getenv("BROWSER_WINDOW_HEIGHT", 1080))
+from projekt_tests.utils import path_dir
 
 
-def pytest_addoption(parser):
-    parser.addoption("--browser_version", default=DEFAULT_BROWSER_VERSION)
+@pytest.fixture(scope="session")
+def browser_context_args(browser_context_args, playwright):
+
+    # iphone_11 = playwright.devices['iPhone 11 Pro']
+    downloads_path = path_dir.reports()
+    return {
+        **browser_context_args,
+        # **iphone_11,
+        "ignore_https_errors": True,
+        "viewport": {
+            "width": 1536, # 1920
+            "height": 864, # 1080
+        },
+        # "accept_downloads": True,
+        # "downloads_path": downloads_path
+        # "locale": "de-DE",
+        # "timezone_id" : "Europe/Berlin",
+    }
 
 
-def is_selenoid_available(url):
-    try:
-        response = requests.get(f"http://{url}/status", timeout=3)
-        return response.status_code == 200
-    except requests.exceptions.RequestException:
-        return False
 
 
-@pytest.fixture(scope="session", autouse=True)
-def load_env():
-    load_dotenv()
 
-
-@pytest.fixture(scope="function", autouse=True)
-def setup_browser(request):
-    browser_version = request.config.getoption("--browser_version")
-    browser.config.base_url = "https://www.litres.ru/"
-    browser.config.timeout = 10
-    browser.config.window_width = DEFAULT_WINDOW_WIDTH
-    browser.config.window_height = DEFAULT_WINDOW_HEIGHT
-
-    driver_options = webdriver.ChromeOptions()
-    driver_options.page_load_strategy = "eager"
-
-    # Получаем данные Selenoid
-    selenoid_login = os.getenv("SELENOID_LOGIN")
-    selenoid_pass = os.getenv("SELENOID_PASS")
-    selenoid_url = os.getenv("SELENOID_URL")
-
-    if selenoid_url:
-        if not selenoid_login or not selenoid_pass:
-            pytest.exit("Для запуска в Selenoid необходимо задать SELENOID_LOGIN и SELENOID_PASS", returncode=1)
-
-        if not is_selenoid_available(selenoid_url):
-            pytest.exit(f"Selenoid недоступен по адресу {selenoid_url}", returncode=1)
-
-        print(f"Запуск через Selenoid: {selenoid_url}")
-        options = Options()
-        selenoid_capabilities = {
-            "browserName": "chrome",
-            "browserVersion": browser_version,
-            "selenoid:options": {"enableVNC": True, "enableVideo": True},
-        }
-        options.capabilities.update(selenoid_capabilities)
-
-        browser.config.driver = webdriver.Remote(
-            command_executor=f"https://{selenoid_login}:{selenoid_pass}@{selenoid_url}/wd/hub",
-            options=options,
-        )
-    else:
-        print("SELENOID_URL не задан! Запуск локального Chrome.")
-        browser.config.driver = webdriver.Chrome(options=driver_options)
-    time.sleep(5)
-    browser.open("/")
-
-    yield
-
-    # Завершение теста и добавление аттачей
-    try:
-        if browser.driver.session_id:
-            attach.add_html(browser)
-            attach.add_screenshot(browser)
-            attach.add_logs(browser)
-            attach.add_video(browser)
-    finally:
-        browser.quit()
+# @pytest.fixture(scope="function", autouse=True)
+# def screenshot_on_failure(page, request):
+#     yield
+#     save_all_screenshots = True
+#
+#     if save_all_screenshots or request.node.rep_call.failed:
+#         test_name = request.node.name
+#         screenshot_path = path_dir.screenshots(f'{test_name}.png')
+#
+#         page.screenshot(path=screenshot_path)
+#
+#         with open(screenshot_path, "rb") as image_file:
+#             allure.attach(
+#                 image_file.read(),
+#                 name=f"{test_name}_screenshot",
+#                 attachment_type=allure.attachment_type.PNG
+#             )
+#
+#
+# @pytest.fixture(scope="function", autouse=True)
+# def capture_browser_logs_and_html(page, request):
+#     """
+#     Pytest fixture for capturing browser logs and page source automatically.
+#     Attaches data to Allure after test execution.
+#     """
+#     console_logs = []
+#
+#     # Collect browser console logs using the 'console' event
+#     def log_message(msg):
+#         console_logs.append(f"{msg.type}: {msg.text}")
+#
+#     page.on("console", log_message)
+#
+#     # Yield control to the test
+#     yield
+#
+#     # After the test is done, attach the logs and page source to Allure
+#     if console_logs:
+#         log_text = "\n".join(console_logs)
+#         allure.attach(log_text, name="browser_logs", attachment_type=AttachmentType.TEXT, extension=".log")
+#
+#     try:
+#         html_source = page.content()
+#         allure.attach(html_source, name="page_source", attachment_type=AttachmentType.HTML, extension=".html")
+#     except Exception as e:
+#         allure.attach(str(e), name="Error capturing page source", attachment_type=AttachmentType.TEXT)
+#
+#

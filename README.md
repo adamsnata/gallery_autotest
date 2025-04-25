@@ -1,5 +1,7 @@
 # Проект по тестированию сервиса электронных и аудиокниг "Литрес"
 
+java "-DconfigFile=notifications/config.json" -jar notifications/allure-notifications-4.9.0.jar 
+
 > [Ссылка на сайт](https://www.litres.ru)
 
 ![This is an image](media/images/litres.png)
